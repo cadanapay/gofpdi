@@ -50,7 +50,7 @@ func (i *Importer) ImportPage(f gofpdiPdf, sourceFile string, pageno int, box st
 // (/MediaBox, TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id
 // that can be used with UseImportedTemplate to draw the template onto the
 // page.
-func (i *Importer) ImportPageFromStream(f gofpdiPdf, rs io.ReadSeeker, pageno int, box string) (int, error) {
+func (i *Importer) ImportPageFromStream(f gofpdiPdf, rs *io.ReadSeeker, pageno int, box string) (int, error) {
 	// Set source stream for fpdi
 	i.fpdi.SetSourceStream(rs)
 	// return template id
@@ -127,7 +127,7 @@ func ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) (int, er
 // that can be used with UseImportedTemplate to draw the template onto the
 // page.
 // Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
-func ImportPageFromStream(f gofpdiPdf, rs io.ReadSeeker, pageno int, box string) (int, error) {
+func ImportPageFromStream(f gofpdiPdf, rs *io.ReadSeeker, pageno int, box string) (int, error) {
 	return fpdi.ImportPageFromStream(f, rs, pageno, box)
 }
 
