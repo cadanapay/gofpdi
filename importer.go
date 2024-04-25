@@ -61,14 +61,14 @@ func (im *Importer) init() {
 	im.importedPages = make(map[string]int, 0)
 }
 
-func (im *Importer) SetSourceFile(f string) {
+func (im *Importer) SetSourceFile(f string) error {
 	im.sourceFile = f
 
 	// If reader hasn't been instantiated, do that now
 	if _, ok := im.readers[im.sourceFile]; !ok {
 		reader, err := NewPdfReader(im.sourceFile)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		im.readers[im.sourceFile] = reader
 	}
@@ -77,22 +77,24 @@ func (im *Importer) SetSourceFile(f string) {
 	if _, ok := im.writers[im.sourceFile]; !ok {
 		writer, err := NewPdfWriter("")
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		// Make the next writer start template numbers at im.tplN
 		writer.SetTplIdOffset(im.tplN)
 		im.writers[im.sourceFile] = writer
 	}
+
+	return nil
 }
 
-func (im *Importer) SetSourceStream(rs io.ReadSeeker) {
+func (im *Importer) SetSourceStream(rs io.ReadSeeker) error {
 	im.sourceFile = fmt.Sprintf("%v", &rs)
 
 	if _, ok := im.readers[im.sourceFile]; !ok {
 		reader, err := NewPdfReaderFromStream(im.sourceFile, rs)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		im.readers[im.sourceFile] = reader
 	}
@@ -101,45 +103,47 @@ func (im *Importer) SetSourceStream(rs io.ReadSeeker) {
 	if _, ok := im.writers[im.sourceFile]; !ok {
 		writer, err := NewPdfWriter("")
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		// Make the next writer start template numbers at im.tplN
 		writer.SetTplIdOffset(im.tplN)
 		im.writers[im.sourceFile] = writer
 	}
+
+	return nil
 }
 
-func (im *Importer) GetNumPages() int {
+func (im *Importer) GetNumPages() (int, error) {
 	result, err := im.GetReader().getNumPages()
 
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
-	return result
+	return result, nil
 }
 
-func (im *Importer) GetPageSizes() map[int]map[string]map[string]float64 {
+func (im *Importer) GetPageSizes() (map[int]map[string]map[string]float64, error) {
 	result, err := im.GetReader().getAllPageBoxes(1.0)
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return result
+	return result, nil
 }
 
-func (im *Importer) ImportPage(pageno int, box string) int {
+func (im *Importer) ImportPage(pageno int, box string) (int, error) {
 	// If page has already been imported, return existing tplN
 	pageNameNumber := fmt.Sprintf("%s-%04d", im.sourceFile, pageno)
 	if _, ok := im.importedPages[pageNameNumber]; ok {
-		return im.importedPages[pageNameNumber]
+		return im.importedPages[pageNameNumber], nil
 	}
 
 	res, err := im.GetWriter().ImportPage(im.GetReader(), pageno, box)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	// Get current template id
@@ -154,7 +158,7 @@ func (im *Importer) ImportPage(pageno int, box string) int {
 	// Cache imported page tplN
 	im.importedPages[pageNameNumber] = tplN
 
-	return tplN
+	return tplN, nil
 }
 
 func (im *Importer) SetNextObjectID(objId int) {
@@ -162,30 +166,30 @@ func (im *Importer) SetNextObjectID(objId int) {
 }
 
 // Put form xobjects and get back a map of template names (e.g. /GOFPDITPL1) and their object ids (int)
-func (im *Importer) PutFormXobjects() map[string]int {
+func (im *Importer) PutFormXobjects() (map[string]int, error) {
 	res := make(map[string]int, 0)
 	tplNamesIds, err := im.GetWriter().PutFormXobjects(im.GetReader())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	for tplName, pdfObjId := range tplNamesIds {
 		res[tplName] = pdfObjId.id
 	}
-	return res
+	return res, nil
 }
 
 // Put form xobjects and get back a map of template names (e.g. /GOFPDITPL1) and their object ids (sha1 hash)
-func (im *Importer) PutFormXobjectsUnordered() map[string]string {
+func (im *Importer) PutFormXobjectsUnordered() (map[string]string, error) {
 	im.GetWriter().SetUseHash(true)
 	res := make(map[string]string, 0)
 	tplNamesIds, err := im.GetWriter().PutFormXobjects(im.GetReader())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	for tplName, pdfObjId := range tplNamesIds {
 		res[tplName] = pdfObjId.hash
 	}
-	return res
+	return res, nil
 }
 
 // Get object ids (int) and their contents (string)

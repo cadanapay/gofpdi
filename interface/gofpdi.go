@@ -39,7 +39,7 @@ func NewImporter() *Importer {
 // ImportPage imports a page of a PDF file with the specified box (/MediaBox,
 // /TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id that can
 // be used with UseImportedTemplate to draw the template onto the page.
-func (i *Importer) ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) int {
+func (i *Importer) ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) (int, error) {
 	// Set source file for fpdi
 	i.fpdi.SetSourceFile(sourceFile)
 	// return template id
@@ -50,21 +50,27 @@ func (i *Importer) ImportPage(f gofpdiPdf, sourceFile string, pageno int, box st
 // (/MediaBox, TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id
 // that can be used with UseImportedTemplate to draw the template onto the
 // page.
-func (i *Importer) ImportPageFromStream(f gofpdiPdf, rs io.ReadSeeker, pageno int, box string) int {
+func (i *Importer) ImportPageFromStream(f gofpdiPdf, rs io.ReadSeeker, pageno int, box string) (int, error) {
 	// Set source stream for fpdi
 	i.fpdi.SetSourceStream(rs)
 	// return template id
 	return i.getTemplateID(f, pageno, box)
 }
 
-func (i *Importer) getTemplateID(f gofpdiPdf, pageno int, box string) int {
+func (i *Importer) getTemplateID(f gofpdiPdf, pageno int, box string) (int, error) {
 	// Import page
-	tpl := i.fpdi.ImportPage(pageno, box)
+	tpl, err := i.fpdi.ImportPage(pageno, box)
+	if err != nil {
+		return 0, err
+	}
 
 	// Import objects into current pdf document
 	// Unordered means that the objects will be returned with a sha1 hash instead of an integer
 	// The objects themselves may have references to other hashes which will be replaced in ImportObjects()
-	tplObjIDs := i.fpdi.PutFormXobjectsUnordered()
+	tplObjIDs, err := i.fpdi.PutFormXobjectsUnordered()
+	if err != nil {
+		return 0, err
+	}
 
 	// Set template names and ids (hashes) in gofpdf
 	f.ImportTemplates(tplObjIDs)
@@ -83,7 +89,7 @@ func (i *Importer) getTemplateID(f gofpdiPdf, pageno int, box string) int {
 	// Import gofpdi object hashes and their positions into gopdf
 	f.ImportObjPos(importedObjPos)
 
-	return tpl
+	return tpl, nil
 }
 
 // UseImportedTemplate draws the template onto the page at x,y. If w is 0, the
@@ -101,7 +107,7 @@ func (i *Importer) UseImportedTemplate(f gofpdiPdf, tplid int, x float64, y floa
 // <page number>: page number, note that page numbers start at 1
 // <box>: box identifier, e.g. "/MediaBox"
 // <dimension>: dimension string, either "w" or "h"
-func (i *Importer) GetPageSizes() map[int]map[string]map[string]float64 {
+func (i *Importer) GetPageSizes() (map[int]map[string]map[string]float64, error) {
 	return i.fpdi.GetPageSizes()
 }
 
@@ -112,7 +118,7 @@ var fpdi = NewImporter()
 // /TrimBox, /ArtBox, /CropBox, or /BleedBox). Returns a template id that can
 // be used with UseImportedTemplate to draw the template onto the page.
 // Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
-func ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) int {
+func ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) (int, error) {
 	return fpdi.ImportPage(f, sourceFile, pageno, box)
 }
 
@@ -121,7 +127,7 @@ func ImportPage(f gofpdiPdf, sourceFile string, pageno int, box string) int {
 // that can be used with UseImportedTemplate to draw the template onto the
 // page.
 // Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
-func ImportPageFromStream(f gofpdiPdf, rs io.ReadSeeker, pageno int, box string) int {
+func ImportPageFromStream(f gofpdiPdf, rs io.ReadSeeker, pageno int, box string) (int, error) {
 	return fpdi.ImportPageFromStream(f, rs, pageno, box)
 }
 
@@ -139,6 +145,6 @@ func UseImportedTemplate(f gofpdiPdf, tplid int, x float64, y float64, w float64
 // <box>: box identifier, e.g. "/MediaBox"
 // <dimension>: dimension string, either "w" or "h"
 // Note: This uses the default Importer. Call NewImporter() to obtain a custom Importer.
-func GetPageSizes() map[int]map[string]map[string]float64 {
+func GetPageSizes() (map[int]map[string]map[string]float64, error) {
 	return fpdi.GetPageSizes()
 }

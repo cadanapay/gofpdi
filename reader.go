@@ -1445,7 +1445,7 @@ func (pr *PdfReader) getAllPageBoxes(k float64) (map[int]map[string]map[string]f
 	var err error
 
 	// Allocate result with the number of available boxes
-	result := make(map[int]map[string]map[string]float64)
+	result := make(map[int]map[string]map[string]float64, len(pr.pages))
 
 	for i := 1; i <= len(pr.pages); i++ {
 		result[i], err = pr.getPageBoxes(i, k)
