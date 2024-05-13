@@ -89,7 +89,7 @@ func (im *Importer) SetSourceFile(f string) error {
 }
 
 func (im *Importer) SetSourceStream(rs *io.ReadSeeker) error {
-	im.sourceFile = fmt.Sprintf("%v", rs)
+	im.sourceFile = fmt.Sprintf("%p", rs)
 
 	if _, ok := im.readers[im.sourceFile]; !ok {
 		reader, err := NewPdfReaderFromStream(im.sourceFile, *rs)
